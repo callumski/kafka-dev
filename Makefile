@@ -1,57 +1,29 @@
-.PHONY: all clean setup test run
+MSG:= $(shell cat ${TEST_MSG_FILE})
 
-all: clean setup test
+.PHONY: up start stop create_test_topic list_topics describe_test_topic producer_interactive_start consumer_test_topic_start send_test_message
 
-clean:
-	echo clean
-setup:
-	echo setup
+up:
+	docker-compose up
 
-test:
-	echo test
-run:
-	kafka/bin/zookeeper-server-start.sh kafka/config/zookeeper.properties &
-	echo sleep 10s
-	sleep 10
-	kafka/bin/kafka-server-start.sh kafka/config/server.properties &
-
-run_extra:
-	kafka/bin/kafka-server-start.sh kafka/config/server-1.properties &
-	kafka/bin/kafka-server-start.sh kafka/config/server-2.properties &
-
+start: up create_test_topic
 
 stop:
-	kafka/bin/kafka-server-stop.sh kafka/config/server.properties &
-	echo sleep 10s
-	sleep 10
-	kafka/bin/zookeeper-server-stop.sh kafka/config/zookeeper.properties & 
+	docker-compose down
 
 create_test_topic:
-	kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test
-
-create_repl_topic:
-	kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 3 --partitions 1 --topic my-replicated-topic
-
+	docker-compose exec kafka1 kafka-topics --create --topic ${KAFKA_TOPIC} --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zoo1:2181
 
 list_topics:
-	kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+	docker-compose exec kafka1 kafka-topics --list --zookeeper zoo1:2181
 
 describe_test_topic:
-	kafka/bin/kafka-topics.sh --describe --bootstrap-server localhost:9092 --topic test
+	docker-compose exec kafka1 kafka-topics --describe --zookeeper zoo1:2181 --topic ${KAFKA_TOPIC}
 
+producer_interactive_start:
+	docker-compose exec kafka1 kafka-console-producer --bootstrap-server kafka1:9092 --topic ${KAFKA_TOPIC}
 
-describe_repl_topic:
-	kafka/bin/kafka-topics.sh --describe --bootstrap-server localhost:9092 --topic my-replicated-topic
+consumer_test_topic_start:
+	docker-compose exec kafka1 kafka-console-consumer --bootstrap-server kafka1:9092 --topic ${KAFKA_TOPIC} --from-beginning
 
-
-producer_test_start:
-	kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic test
-
-consumer_test_start:
-	kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test --from-beginning
-
-producer_repl_start:
-	kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic my-replicated-topi
-
-consumer_repl_start:
-	kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic my-replicated-topi --from-beginning
+send_test_message:
+	docker-compose exec kafka1 bash -c 'echo ${MSG} | kafka-console-producer --request-required-acks 1 --broker-list kafka1:9092 --topic ${KAFKA_TOPIC} && echo "Message sent"'
