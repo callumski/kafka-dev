@@ -1,0 +1,4 @@
+export DOCKER_HOST_IP=127.0.0.1
+export KAFKA_TOPIC=test
+export TEST_MSG_FILE=test-message.json
+export CA_PASSWORD=LuggageCombination12345
