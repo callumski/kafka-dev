@@ -1,2 +1,4 @@
+.envrc
+
 kafka/
-zk-single-kafka-single/
+
